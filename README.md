@@ -111,3 +111,21 @@ node scripts/verify-connect.mjs 'ws://host.docker.internal:3000/?token=test-toke
 `pnpm-workspace.yaml` holds the pnpm 11 build policy: the esbuild postinstall is
 allowed via `allowBuilds` (`onlyBuiltDependencies` mirrors it for pnpm 10), and
 `verifyDepsBeforeRun: false` stops `pnpm <script>` from auto-running an install.
+
+## Publishing
+
+Releases go to the public npm registry and are driven by the `Makefile`
+(`make help` lists every target). Every publish target depends on `verify`, so
+`typecheck → test → build` runs before anything leaves the machine.
+
+```bash
+pnpm login                 # or: npm login  (needs an npm account allowed to write the package)
+# bump "version" in package.json first — publishing always ships the manifest version
+make publish-dry-run       # pack + report only: writes nothing, needs no credentials
+make publish               # publish the tarball to the default registry
+make publish-next          # publish the same tarball under the "next" dist-tag
+make pack                  # only build a local tarball under dist/
+```
+
+The package name has no scope, so `publishConfig.access: "public"` in
+`package.json` records that a public publish is intended (not a private one).
