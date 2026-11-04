@@ -1,0 +1,5 @@
+# dsh-browser-native bundle layer: register the browser_native tools on the
+# host tools registry so every session composed under this profile can call them.
+- insert:
+    - id: dsh-browser-native
+      name: dsh-browser-native
