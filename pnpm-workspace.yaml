@@ -1,0 +1,10 @@
+# pnpm 11 build policy.
+# `onlyBuiltDependencies` is the pnpm 10 key required by the project checklist; pnpm 11
+# reads the equivalent `allowBuilds` map, so both are kept in sync here.
+onlyBuiltDependencies:
+  - esbuild
+
+allowBuilds:
+  esbuild: true
+
+verifyDepsBeforeRun: false

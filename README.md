@@ -27,7 +27,7 @@ Verified against the live endpoint: `Browser.getVersion` reports
 ```bash
 dsh plugin --profile web add dsh-browser-native     # from a registry/tarball
 # or, in a checkout:
-npm install && npm run build
+pnpm install && pnpm build
 dsh plugin --profile web add "$PWD"
 ```
 
@@ -95,10 +95,19 @@ client connection, so the next call attaches again.
 
 ## Development
 
+This project manages dependencies with **pnpm** — the exact version is pinned in
+`package.json > packageManager` (`pnpm@11.7.0`), so `corepack enable` is enough to
+get the right one. `package-lock.json` is gone; use `pnpm-lock.yaml`.
+
 ```bash
-npm install
-npm run typecheck     # tsc --noEmit (src + tests)
-npm test              # vitest run
-npm run build         # tsc -p tsconfig.build.json → dist/
+pnpm install          # install dependencies (writes pnpm-lock.yaml)
+pnpm typecheck        # tsc --noEmit (src + tests)
+pnpm test             # vitest run
+pnpm build            # tsc -p tsconfig.build.json → dist/
+pnpm pack             # build + pack a tarball (prepack runs the build)
 node scripts/verify-connect.mjs 'ws://host.docker.internal:3000/?token=test-token'
 ```
+
+`pnpm-workspace.yaml` holds the pnpm 11 build policy: the esbuild postinstall is
+allowed via `allowBuilds` (`onlyBuiltDependencies` mirrors it for pnpm 10), and
+`verifyDepsBeforeRun: false` stops `pnpm <script>` from auto-running an install.

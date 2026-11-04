@@ -22,9 +22,10 @@
     }
   },
   "license": "MIT",
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "npm run build",
+    "prepack": "pnpm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
