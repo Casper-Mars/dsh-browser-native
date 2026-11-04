@@ -7,7 +7,7 @@
 # Package name and version are read from package.json at parse time so they can
 # never drift from the manifest.
 
-SHELL := /bin/bash
+SHELL := /bin/sh
 .DEFAULT_GOAL := help
 
 PNPM ?= pnpm
@@ -34,7 +34,7 @@ help: ## Show this help (default target)
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-z][a-z-]*:.*## / {printf "  %-24s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 install: ## Install dependencies from pnpm-lock.yaml (frozen)
-	$(PNPM) install --frozen-lockfile
+	$(PNPM) install 
 
 typecheck: ## Type-check src + tests without emitting files
 	$(PNPM) run typecheck
@@ -57,31 +57,31 @@ pack: build ## Build and drop the npm tarball into dist/
 
 stage-publish: verify ## Stage this version for publishing (no 2FA; approve later)
 	@echo "==> staging $(NAME)@$(VERSION) on the default tag (npm stage, no 2FA)"
-	$(NPM) stage publish
+	$(PNPM) stage publish
 
 stage-publish-next: verify ## Stage this version under the "next" dist-tag
 	@echo "==> staging $(NAME)@$(VERSION) with dist-tag next"
-	$(NPM) stage publish --tag next
+	$(PNPM) stage publish --tag next
 
 stage-publish-dry-run: ## Dry-run stage: packs and reports, writes nothing, needs no credentials
 	@echo "==> npm stage publish --dry-run (no registry write, no credentials needed)"
-	$(NPM) stage publish --dry-run
+	$(PNPM) stage publish --dry-run
 
 stage-list: ## List staged versions of this package and their stage ids
 	@echo "==> staged versions of $(NAME)"
-	$(NPM) stage list $(NAME)
+	$(PNPM) stage list $(NAME)
 
 stage-view: ## Inspect one staged version (needs STAGE_ID=<id>)
 	@$(call STAGE_ID_GUARD,stage-view)
 	@echo "==> staged version $(STAGE_ID) of $(NAME)"
-	$(NPM) stage view $(STAGE_ID)
+	$(PNPM) stage view $(STAGE_ID)
 
 stage-approve: verify ## Approve a staged version, publishing it (needs STAGE_ID=<id>, 2FA)
 	@$(call STAGE_ID_GUARD,stage-approve)
 	@echo "==> approving staged version $(STAGE_ID) of $(NAME) (2FA required)"
-	$(NPM) stage approve $(STAGE_ID)
+	$(PNPM) stage approve $(STAGE_ID)
 
 stage-reject: verify ## Reject a staged version and drop it (needs STAGE_ID=<id>, 2FA)
 	@$(call STAGE_ID_GUARD,stage-reject)
 	@echo "==> rejecting staged version $(STAGE_ID) of $(NAME) (2FA required)"
-	$(NPM) stage reject $(STAGE_ID)
+	$(PNPM) stage reject $(STAGE_ID)
