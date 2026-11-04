@@ -149,6 +149,9 @@ Notes:
 - `npm stage` requires **npm 12 or newer**. The `Makefile` calls
   `$(NPM) stage …` with `NPM ?= npm`, so put npm 12+ on `PATH`; pointing at a
   specific binary also works: `make stage-publish NPM=/path/to/npm12`.
+- `npm stage publish` runs the package's `prepack` hook (`pnpm run build`), so
+  **`pnpm` must also be on `PATH`** — npm 12+ only supplies the `stage`
+  subcommand, not the build toolchain.
 - Only `stage-approve` and `stage-reject` prompt for 2FA, so an automated
   workflow can stage unattended and a maintainer approves later. Staging itself
   only needs a token with write access to the package.
