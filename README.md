@@ -115,19 +115,49 @@ allowed via `allowBuilds` (`onlyBuiltDependencies` mirrors it for pnpm 10), and
 ## Publishing
 
 Releases go to the public npm registry and are driven by the `Makefile`
-(`make help` lists every target). `publish` and `publish-next` depend on
-`verify`, so `typecheck → test → build` runs before anything leaves the
-machine. `publish-dry-run` runs on its own: it packs and reports without
+(`make help` lists every target). Publishing is **staged** through
+`npm stage` (npm 12+): `make stage-publish` packs the working tree and puts
+that version into the registry's staging area without a 2FA prompt, and a
+human later runs `make stage-approve`, which is where proof-of-presence (2FA)
+is required. A staged version is **not publicly accessible while it waits** —
+nobody can install it until it is approved.
+
+`stage-publish` and `stage-publish-next` depend on `verify`, so
+`typecheck → test → build` runs before anything leaves the machine.
+`stage-publish-dry-run` runs on its own: it packs and reports without
 credentials or a registry write.
 
 ```bash
-pnpm login                 # or: npm login  (needs an npm account allowed to write the package)
-# bump "version" in package.json first — publishing always ships the manifest version
-make publish-dry-run       # pack + report only: writes nothing, needs no credentials
-make publish               # publish the tarball to the default registry
-make publish-next          # publish the same tarball under the "next" dist-tag
-make pack                  # only build a local tarball under dist/
+npm login                   # npm 12+: `npm stage` lives in the npm CLI, not pnpm
+# bump "version" in package.json first — staging always ships the manifest version
+make stage-publish-dry-run        # pack + report only: nothing written, no credentials
+make stage-publish                # stage this version on the default (latest) tag
+make stage-publish-next           # stage it under the "next" dist-tag instead
+make stage-list                   # list staged versions and their stage ids
+make stage-view STAGE_ID=<id>     # inspect one staged version
+make stage-approve STAGE_ID=<id>  # 2FA prompt — publish the staged version
+make stage-reject STAGE_ID=<id>   # 2FA prompt — discard the staged version
+make pack                         # only build a local tarball under dist/
 ```
+
+So a release is three steps: `make stage-publish` → `make stage-list` (copy the
+stage id) → `make stage-approve STAGE_ID=<id>`. `stage-view`, `stage-approve`
+and `stage-reject` require `STAGE_ID`; without it they print usage and exit 2.
+
+Notes:
+
+- `npm stage` requires **npm 12 or newer**. The `Makefile` calls
+  `$(NPM) stage …` with `NPM ?= npm`, so put npm 12+ on `PATH`; pointing at a
+  specific binary also works: `make stage-publish NPM=/path/to/npm12`.
+- Only `stage-approve` and `stage-reject` prompt for 2FA, so an automated
+  workflow can stage unattended and a maintainer approves later. Staging itself
+  only needs a token with write access to the package.
+- A staged version keeps the tag it was staged with: the tag cannot be changed
+  afterwards — reject that stage id and stage again with the tag you want.
+- Staged and published versions share the same version index, so you cannot
+  stage a version that already exists.
+- `stage-publish` has the same parity rules as `npm publish`, including
+  refusing a manifest with `"private": true`.
 
 The package name has no scope, so `publishConfig.access: "public"` in
 `package.json` records that a public publish is intended (not a private one).
