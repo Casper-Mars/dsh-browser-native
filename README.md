@@ -115,8 +115,10 @@ allowed via `allowBuilds` (`onlyBuiltDependencies` mirrors it for pnpm 10), and
 ## Publishing
 
 Releases go to the public npm registry and are driven by the `Makefile`
-(`make help` lists every target). Every publish target depends on `verify`, so
-`typecheck → test → build` runs before anything leaves the machine.
+(`make help` lists every target). `publish` and `publish-next` depend on
+`verify`, so `typecheck → test → build` runs before anything leaves the
+machine. `publish-dry-run` runs on its own: it packs and reports without
+credentials or a registry write.
 
 ```bash
 pnpm login                 # or: npm login  (needs an npm account allowed to write the package)
