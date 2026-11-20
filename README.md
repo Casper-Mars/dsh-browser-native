@@ -78,11 +78,30 @@ Profile patch (`~/.dsh/profiles/web/cordis.patch.yml`):
 | `browser_type` | Fill a field, optionally press Enter |
 | `browser_screenshot` | Capture a PNG to disk and report the path |
 | `browser_evaluate` | Evaluate a JS expression in page context, return JSON |
+| `browser_viewport` | Emulate a device viewport (size, DPR, mobile, touch) via CDP; `reset: true` clears it |
 | `browser_close` | **Disconnect only** — never closes or kills the remote browser |
 
 The connection is lazy and process-wide: the first tool call attaches, later
 calls reuse the same browser and page, and `browser_close` only releases the
 client connection, so the next call attaches again.
+
+### Viewport emulation
+
+`browser_viewport` issues `Emulation.setDeviceMetricsOverride` plus
+`Emulation.setTouchEmulationEnabled` on a reused CDP session — the only path
+that also carries `mobile` semantics and touch points (`page.setViewportSize`
+changes the size alone). Typical responsive checks:
+
+```text
+browser_viewport({ width: 1440, height: 900 })                                  # desktop
+browser_viewport({ width: 1024, height: 768, deviceScaleFactor: 2 })            # tablet
+browser_viewport({ width: 390,  height: 844, deviceScaleFactor: 3, mobile: true }) # mobile + touch
+browser_viewport({ reset: true })                                               # restore default
+```
+
+`touch` defaults to the value of `mobile`. The result reports the effective
+`{ width, height, deviceScaleFactor, mobile, touch }`; a reset returns
+`applied: false, reset: true` with zeroed dimensions.
 
 ## Limits (MVP)
 
@@ -91,7 +110,9 @@ client connection, so the next call attaches again.
 - `browser_screenshot` writes a file and returns its path; it does not return
   an image content block (that needs an attachments service this plugin does
   not inject).
-- One page per process (the first page of the attached context).
+- One page per process (the first page of the attached context); the viewport
+  override is per page and survives navigation, so call `reset: true` when
+  switching back to a desktop default.
 
 ## Development
 

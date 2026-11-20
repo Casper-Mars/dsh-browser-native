@@ -1,6 +1,6 @@
 {
   "name": "dsh-browser-native",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DSH plugin: attach natively to a query-token WebSocket CDP endpoint and register fine-grained browser tools.",
   "type": "module",
   "main": "dist/index.js",

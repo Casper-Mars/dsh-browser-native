@@ -1,5 +1,5 @@
 /**
- * The seven fine-grained browser tools registered by this plugin.
+ * The eight fine-grained browser tools registered by this plugin.
  *
  * Every definition goes through `defineTool`, which compiles the author-facing
  * schema DSL into the enforced JSON Schema subset and adds strict argument
@@ -27,6 +27,7 @@ export const BROWSER_TOOL_NAMES = [
   'browser_type',
   'browser_screenshot',
   'browser_evaluate',
+  'browser_viewport',
   'browser_close',
 ] as const
 
@@ -86,7 +87,7 @@ export function resolveScreenshotPath(
  * Build the tool definitions bound to one session.
  * @param session - attached-or-lazy browser session.
  * @param options - timeouts and screenshot destination.
- * @returns the seven registry-ready definitions.
+ * @returns the eight registry-ready definitions.
  */
 export function createBrowserTools(
   session: BrowserSession,
@@ -302,6 +303,62 @@ export function createBrowserTools(
     },
   })
 
+  const viewport = defineTool({
+    name: 'browser_viewport',
+    description:
+      'Emulate a device viewport on the current tab: size, device pixel ratio, and mobile/touch semantics. Use reset=true to restore the browser default. Call it before navigating or capturing screenshots when checking responsive layouts.',
+    parameters: {
+      width: {
+        type: 'integer',
+        description: 'Viewport width in CSS pixels. Required unless reset is true.',
+      },
+      height: {
+        type: 'integer',
+        description: 'Viewport height in CSS pixels. Required unless reset is true.',
+      },
+      deviceScaleFactor: {
+        type: 'number',
+        description: 'Device pixel ratio (default 1; mobile devices commonly use 2 or 3).',
+      },
+      mobile: {
+        type: 'boolean',
+        description: 'Emulate a mobile viewport, which also affects meta viewport handling (default false).',
+      },
+      touch: {
+        type: 'boolean',
+        description: 'Enable touch emulation with 5 touch points (defaults to the value of mobile).',
+      },
+      reset: {
+        type: 'boolean',
+        description: 'Clear the override and restore the browser default viewport (default false).',
+      },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          applied: { type: 'boolean', required: true },
+          reset: { type: 'boolean', required: true },
+          width: { type: 'integer', required: true },
+          height: { type: 'integer', required: true },
+          deviceScaleFactor: { type: 'number', required: true },
+          mobile: { type: 'boolean', required: true },
+          touch: { type: 'boolean', required: true },
+        },
+      },
+      render: (_args, value) =>
+        text(
+          value.reset
+            ? 'Viewport override cleared (browser default restored)'
+            : `Viewport ${value.width}x${value.height} @${value.deviceScaleFactor}x mobile=${value.mobile} touch=${value.touch}`,
+        ),
+    },
+    async execute(args) {
+      return session.applyViewport(args)
+    },
+  })
+
   const close = defineTool({
     name: 'browser_close',
     description:
@@ -325,5 +382,5 @@ export function createBrowserTools(
     },
   })
 
-  return [navigate, snapshot, click, type, screenshot, evaluate, close]
+  return [navigate, snapshot, click, type, screenshot, evaluate, viewport, close]
 }

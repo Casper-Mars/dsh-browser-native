@@ -5,7 +5,7 @@ import path from 'node:path'
 import { ToolArgsError } from '@deepseek-ai/dsh-tools'
 import { describe, expect, it } from 'vitest'
 
-import type { BrowserSession, PageLike, SessionStatus } from '../src/session.js'
+import type { BrowserSession, PageLike, SessionStatus, ViewportSpec, ViewportState } from '../src/session.js'
 import {
   BROWSER_TOOL_NAMES,
   createBrowserTools,
@@ -89,6 +89,7 @@ class FakeSession implements BrowserSession {
   ensurePageCalls = 0
   closeCalls = 0
   statusCalls = 0
+  viewportCalls: ViewportSpec[] = []
   connected = true
   constructor(readonly page: FakePage, cdpUrl = 'ws://127.0.0.1:3000/?token=t') {
     this.cdpUrl = cdpUrl
@@ -102,6 +103,27 @@ class FakeSession implements BrowserSession {
   status(): SessionStatus {
     this.statusCalls += 1
     return { connected: this.connected, cdpUrl: this.cdpUrl }
+  }
+
+  async applyViewport(spec: ViewportSpec): Promise<ViewportState> {
+    this.viewportCalls.push(spec)
+    if (spec.reset === true) {
+      return { applied: false, reset: true, width: 0, height: 0, deviceScaleFactor: 0, mobile: false, touch: false }
+    }
+    if (spec.width === undefined || spec.height === undefined) {
+      throw new Error('browser_viewport requires width and height unless reset is true')
+    }
+    const deviceScaleFactor = spec.deviceScaleFactor ?? 1
+    const mobile = spec.mobile === true
+    return {
+      applied: true,
+      reset: false,
+      width: spec.width,
+      height: spec.height,
+      deviceScaleFactor,
+      mobile,
+      touch: spec.touch ?? mobile,
+    }
   }
 
   async close(): Promise<{ closed: boolean }> {
@@ -135,6 +157,7 @@ const REQUIRED_PARAMETERS: Record<string, string[]> = {
   browser_type: ['selector', 'text'],
   browser_screenshot: [],
   browser_evaluate: ['expression'],
+  browser_viewport: [],
   browser_close: [],
 }
 
@@ -145,11 +168,12 @@ const EXPECTED_PROPERTIES: Record<string, string[]> = {
   browser_type: ['selector', 'text', 'submit', 'timeoutMs'],
   browser_screenshot: ['path', 'fullPage'],
   browser_evaluate: ['expression'],
+  browser_viewport: ['width', 'height', 'deviceScaleFactor', 'mobile', 'touch', 'reset'],
   browser_close: [],
 }
 
 describe('createBrowserTools', () => {
-  it('registers exactly the seven documented tool names in order', () => {
+  it('registers exactly the eight documented tool names in order', () => {
     const { tools } = build()
     expect(tools.map((tool) => tool.name)).toEqual([...BROWSER_TOOL_NAMES])
   })
@@ -285,6 +309,62 @@ describe('createBrowserTools', () => {
     expect(result).toEqual({ closed: true, cdpUrl: 'ws://127.0.0.1:3000/?token=t' })
     expect(session.closeCalls).toBe(1)
     expect(page.closed).toBe(false)
+  })
+
+  it('applies a viewport and defaults touch to the mobile flag', async () => {
+    const { tools, session } = build()
+    const result = await toolNamed(tools, 'browser_viewport').execute(
+      { width: 390, height: 844, deviceScaleFactor: 3, mobile: true },
+      NO_EXEC,
+    )
+    expect(session.viewportCalls).toEqual([{ width: 390, height: 844, deviceScaleFactor: 3, mobile: true }])
+    expect(result).toEqual({
+      applied: true,
+      reset: false,
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 3,
+      mobile: true,
+      touch: true,
+    })
+  })
+
+  it('keeps an explicit touch flag over the mobile default', async () => {
+    const { tools, session } = build()
+    const result = await toolNamed(tools, 'browser_viewport').execute(
+      { width: 1024, height: 768, mobile: false, touch: true },
+      NO_EXEC,
+    )
+    expect(session.viewportCalls.length).toBe(1)
+    expect(result).toMatchObject({ applied: true, deviceScaleFactor: 1, mobile: false, touch: true })
+  })
+
+  it('clears the override when reset is true', async () => {
+    const { tools } = build()
+    const result = await toolNamed(tools, 'browser_viewport').execute({ reset: true }, NO_EXEC)
+    expect(result).toEqual({
+      applied: false,
+      reset: true,
+      width: 0,
+      height: 0,
+      deviceScaleFactor: 0,
+      mobile: false,
+      touch: false,
+    })
+    const tool = toolNamed(tools, 'browser_viewport')
+    expect(
+      tool.output.render(
+        {},
+        { applied: false, reset: true, width: 0, height: 0, deviceScaleFactor: 0, mobile: false, touch: false },
+      ),
+    ).toEqual([{ type: 'text', text: 'Viewport override cleared (browser default restored)' }])
+  })
+
+  it('rejects a viewport request without width or height', async () => {
+    const { tools } = build()
+    await expect(toolNamed(tools, 'browser_viewport').execute({ width: 800 }, NO_EXEC)).rejects.toThrow(
+      'browser_viewport requires width and height unless reset is true',
+    )
   })
 })
 
