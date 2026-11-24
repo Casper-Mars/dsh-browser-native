@@ -33,7 +33,7 @@ export const name = 'dsh-browser-native'
 export const inject = ['tools']
 
 /** Config block schema validated by the profile loader. */
-export const Config = z.object({
+export const Config: z<BrowserNativeConfig> = z.object({
   cdpUrl: z.string().default(DEFAULT_CDP_URL),
   headless: z.boolean().default(false),
   connectTimeoutMs: z.number().default(DEFAULT_CONNECT_TIMEOUT_MS),

@@ -1,6 +1,6 @@
 {
   "name": "dsh-browser-native",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "DSH plugin: attach natively to a query-token WebSocket CDP endpoint and register fine-grained browser tools.",
   "type": "module",
   "main": "dist/index.js",
@@ -26,6 +26,10 @@
     "access": "public"
   },
   "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22.19.0",
+    "dsh": ">=0.2.1-rc.2 <0.3.0"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm run build",
@@ -36,7 +40,7 @@
     "playwright-core": "^1.64.1"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": ">=0.2.1-rc.2 <0.3.0",
     "@deepseek-ai/schemastery": "~3.18.5"
   },
   "peerDependenciesMeta": {
@@ -48,7 +52,7 @@
     }
   },
   "devDependencies": {
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.5",
     "@deepseek-ai/schemastery": "~3.18.5",
     "@types/node": "^24.0.0",
     "typescript": "^5.8.0",
