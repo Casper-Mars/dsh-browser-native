@@ -39,6 +39,31 @@ async function main() {
     console.log(`FAIL ${message}`)
   }
 
+  // dsh 对插件加载失败是「记录错误 + 继续启动」，不会让 runProfile 抛错。
+  // 只断言 skills / preset / tool 会漏掉「某个插件 never started」这种半启动状态，
+  // 所以这里同时捕获启动期的插件加载错误，作为额外的硬闸门。
+  const startupErrors = []
+  const startupErrorPatterns = [
+    /never started/i,
+    /ERR_PACKAGE_PATH_NOT_EXPORTED/,
+    /Cannot find package/i,
+    /does not provide an export/i,
+  ]
+  const originalError = console.error
+  const originalWarn = console.warn
+  const captureStartupError = (...args) => {
+    const line = args.map((arg) => (typeof arg === 'string' ? arg : String(arg))).join(' ')
+    if (startupErrorPatterns.some((pattern) => pattern.test(line))) startupErrors.push(line)
+  }
+  console.error = (...args) => {
+    captureStartupError(...args)
+    originalError(...args)
+  }
+  console.warn = (...args) => {
+    captureStartupError(...args)
+    originalWarn(...args)
+  }
+
   const timer = setTimeout(() => {
     console.error(`FAIL 冷启动超时（${timeoutMs}ms）：profile "${profile}" 未在限定时间内完成挂载`)
     process.exit(1)
@@ -53,12 +78,23 @@ async function main() {
     ;({ ctx, shutdown } = await runProfile({ environment, profile, patchFiles: [], args: [] }))
   } catch (error) {
     clearTimeout(timer)
+    console.error = originalError
+    console.warn = originalWarn
     const detail = error instanceof Error ? (error.stack ?? error.message) : String(error)
     console.error(`FAIL profile "${profile}" 冷启动失败：${detail}`)
     process.exit(1)
   }
 
+  console.error = originalError
+  console.warn = originalWarn
+
   try {
+    if (startupErrors.length > 0) {
+      fail(`启动期有 ${startupErrors.length} 条插件加载错误：${startupErrors[0].slice(0, 240)}`)
+    } else {
+      pass('启动期无插件加载错误')
+    }
+
     const tools = ctx.get('tools')
     if (tools === undefined || typeof tools.definitions !== 'function') {
       fail('ctx.tools 缺失或缺少 definitions()：dsh-tools 服务契约可能已变更')
