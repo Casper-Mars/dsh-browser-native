@@ -34,7 +34,8 @@
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "compat": "bash scripts/dsh-compat.sh"
   },
   "dependencies": {
     "playwright-core": "^1.64.1"

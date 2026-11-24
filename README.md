@@ -3,6 +3,8 @@
 DSH bundle plugin that attaches to a Chromium DevTools Protocol endpoint over a
 **WebSocket URL with a query token** and registers fine-grained browser tools.
 
+[![dsh compatibility](https://github.com/Casper-Mars/dsh-browser-native/actions/workflows/dsh-compat.yml/badge.svg)](https://github.com/Casper-Mars/dsh-browser-native/actions/workflows/dsh-compat.yml)
+
 ## Why this exists
 
 `puppeteer.connect({ browserURL })` discovers the endpoint by building
@@ -21,6 +23,21 @@ this plugin uses.
 
 Verified against the live endpoint: `Browser.getVersion` reports
 `Chrome/156.0.8078.4`.
+
+## Compatibility
+
+`engines.dsh` declares `>=0.2.1-rc.2 <0.3.0`。CI 在每次合并进 `main` 时跑
+「安装准入 → patch 组合 → 冷启动探针」三层校验，并每天巡检 npm 上的 latest / next；
+定时巡检发现不兼容会自动开 `dsh-compat` issue，恢复后自动关闭。
+
+本地复现：
+
+```bash
+pnpm compat                 # npm latest
+pnpm compat 0.2.2-rc.5      # 指定版本
+```
+
+当前已验证：dsh `0.2.2-rc.5`（8 个 browser tool 冷启动注册通过）。
 
 ## Install
 
